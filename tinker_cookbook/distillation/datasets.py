@@ -72,13 +72,10 @@ class CompositeDataset:
             zip(self.datasets, self.groups_per_batch_list)
         ):
             env_group_builders = dataset.get_batch(i_batch)
-            # Each dataset should return exactly groups_per_batch items
-            assert len(env_group_builders) == groups_per_batch, (
-                f"Dataset {dataset_idx} returned {len(env_group_builders)} items, "
-                f"expected {groups_per_batch}"
-            )
+            # Handle partial batches (e.g., last batch may have fewer items)
+            actual_count = len(env_group_builders)
             all_env_group_builders.extend(env_group_builders)
-            all_dataset_indices.extend([dataset_idx] * groups_per_batch)
+            all_dataset_indices.extend([dataset_idx] * actual_count)
 
         return all_env_group_builders, all_dataset_indices
 
@@ -179,10 +176,10 @@ class PromptOnlyDataset(RLDataset):
         return math.ceil(len(self.prompts) / self.batch_size)
 
 
-def load_deepmath_prompts(split: Literal["train", "test"] = "train") -> list[str] | None:
+def load_deepmath_prompts(split: Literal["train", "test"] = "train", config: str = "default") -> list[str] | None:
     """Load DeepMath prompts from HuggingFace. Returns None if split doesn't exist."""
     try:
-        ds = load_dataset("zwhe99/DeepMath-103K", split=split)
+        ds = load_dataset("HuggingFaceH4/DeepMath-103K", split=split, name=config)
         # DeepMath has 'question' field containing the math problem
         prompts = [row["question"] for row in ds]  # type: ignore
         return prompts
@@ -238,7 +235,22 @@ class PromptOnlyDatasetBuilder(RLDatasetBuilder):
 
         # Load prompts based on dataset name
         if self.dataset_name == "deepmath":
-            train_prompts = load_deepmath_prompts("train")
+            train_prompts = load_deepmath_prompts("train", config="tinker_all")
+            test_prompts = None
+        elif self.dataset_name == "deepmath_2.5k":
+            train_prompts = load_deepmath_prompts("train", config="tinker_2.5k")
+            test_prompts = None
+        elif self.dataset_name == "deepmath_5k":
+            train_prompts = load_deepmath_prompts("train", config="tinker_5k")
+            test_prompts = None
+        elif self.dataset_name == "deepmath_10k":
+            train_prompts = load_deepmath_prompts("train", config="tinker_10k")
+            test_prompts = None
+        elif self.dataset_name == "deepmath_25k":
+            train_prompts = load_deepmath_prompts("train", config="tinker_25k")
+            test_prompts = None
+        elif self.dataset_name == "deepmath_62k":
+            train_prompts = load_deepmath_prompts("train", config="tinker_62k")
             test_prompts = None
         elif self.dataset_name == "tulu3":
             train_prompts = load_tulu3_prompts()
