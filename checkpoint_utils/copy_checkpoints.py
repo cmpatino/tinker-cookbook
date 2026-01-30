@@ -12,6 +12,9 @@ import asyncio
 
 import chz
 import tinker
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 @chz.chz
